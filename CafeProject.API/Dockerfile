@@ -1,5 +1,5 @@
 # 1. Aşama: Derleme (Build)
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Klasör ismini belirterek dosyaları içeri alıyoruz
@@ -15,11 +15,11 @@ FROM build AS publish
 RUN dotnet publish "CafeProject.API.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # 3. Aşama: Çalıştırma (Final)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=publish /app/publish .
 
-# Veritabanını da klasörün içinden çekip buraya kopyalıyoruz
+# Veritabanını da kopyalamayı unutmuyoruz
 COPY CafeProject.API/cafe.db . 
 
 ENTRYPOINT ["dotnet", "CafeProject.API.dll"]
