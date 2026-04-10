@@ -1,15 +1,16 @@
 using Microsoft.EntityFrameworkCore;
-using CafeProject.API.Data;
+using CafeProject.API.Data; // Eğer AppDbContext farklı bir klasördeyse burayı düzenle
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. MYSQL VERİTABANI BAĞLANTISI (Pomelo Paketi Gerektirir)
+// 1. MYSQL BAĞLANTI AYARI
+// Bağlantı hatasını (Unable to connect) migration sırasında aşmak için versiyonu sabitliyoruz.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36))));
 
-// 2. CORS POLİTİKASI (Frontend Erişimi)
+// 2. CORS AYARI (Frontend sitene izin veriyoruz)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowEdaCafe", policy =>
@@ -21,14 +22,13 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddControllers();
-
-// 3. SWAGGER AYARLARI (Models Çakışmasını Önlemek İçin Sade Bırakıldı)
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// 4. OTOMATİK MİGRASYON (MySQL Tablolarını Otomatik Oluşturur)
+// 3. OTOMATİK MİGRASYON VE TABLO OLUŞTURMA
+// Bu blok Render'da uygulama ilk açıldığında Hostinger'da tabloları oluşturur.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -36,21 +36,25 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<AppDbContext>();
         context.Database.Migrate();
+        Console.WriteLine("--- VERİTABANI BAĞLANTISI VE MİGRASYON BAŞARILI ---");
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Veritabanı Hazır veya Hata: " + ex.Message);
+        Console.WriteLine("--- MİGRASYON HATASI: " + ex.Message);
     }
 }
 
-// 5. MIDDLEWARE SIRALAMASI
-app.UseSwagger();
-app.UseSwaggerUI();
+// 4. PIPELINE (SIRALAMA KRİTİK)
+if (app.Environment.IsDevelopment() || true) // Render'da Swagger'ı görmek için true kalsın
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+    app.UseDeveloperExceptionPage(); // Hataları detaylı görmek için
+}
 
 app.UseHttpsRedirection();
 
-// CORS, Authorization'dan Önce Gelmeli!
-app.UseCors("AllowEdaCafe");
+app.UseCors("AllowEdaCafe"); // CORS, Auth'dan önce olmalı.
 
 app.UseAuthorization();
 
