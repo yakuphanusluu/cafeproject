@@ -1,97 +1,48 @@
-﻿using CafeProject.Builders;      // Builder Pattern
-using CafeProject.API.Commands;      // Command Pattern
-using CafeProject.API.Data;          // Veritabanı için
-using CafeProject.Decorators;    // Decorator Pattern
-using CafeProject.API.Facades;       // Facade Pattern
-using CafeProject.Factories;     // Factory Pattern
-using CafeProject.Iterators;     // Iterator Pattern
-using CafeProject.Managers;      // Singleton Pattern (InventoryManager)
-using CafeProject.API.Model;        // Order modeli için
-using CafeProject.API.Observers;     // Observer Pattern
-using CafeProject.States;        // State Pattern
-using CafeProject.Strategies;    // Strategy Pattern
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using CafeProject.API.Data; // Kendi Data namespace'ini kontrol et
+using System.Threading.Tasks;
 
 namespace CafeProject.API.Controllers
 {
-    [ApiController]
     [Route("api/[controller]")]
+    [ApiController]
     public class OrderController : ControllerBase
     {
-        private readonly AppDbContext _context; // [PROXY & REPOSITORY PATTERN]
+        private readonly AppDbContext _context;
 
         public OrderController(AppDbContext context)
         {
-            _context = context; // [DEPENDENCY INJECTION PATTERN]
+            _context = context;
         }
 
-        [HttpPost("place-order")]
-        public IActionResult PlaceOrder([FromBody] Order orderDto)
+        // --- SENİN MEVCUT OLAN METOTLARIN (GetOrders, PlaceOrder vb.) BURADA DURACAK ---
+        // (Onları silmene gerek yok, sadece aşağıdaki kısmı ekle)
+
+        // 🚀 DURUM GÜNCELLEME METODU (BARİSTA PANELİNDEKİ BUTONLAR BURAYA VURUR)
+        [HttpPut("update-status/{id}")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto request)
         {
-            try
+            // Veritabanından o ID'ye ait siparişi buluyoruz
+            var order = await _context.Orders.FindAsync(id);
+
+            if (order == null)
             {
-                // 1. [FACADE PATTERN] - Karmaşık süreci tek noktadan yönetir.
-                // Not: Eğer metod ismin farklıysa (örneğin CalculatePrice), onu düzeltmen gerekebilir.
-                orderDto.TotalCost = OrderFacade.CalculateFinalPrice(orderDto);
-
-                // 2. [STATE PATTERN] - Sipariş 'Waiting' (Bekliyor) durumuyla başlar.
-                orderDto.Status = "Waiting";
-
-                // 3. [COMMAND PATTERN] - Siparişi bir komut nesnesiyle kaydediyoruz.
-                // Eğer AddOrderCommand parametreleri farklıysa burayı kontrol et.
-                var command = new AddOrderCommand(_context, orderDto);
-                command.Execute();
-
-                // 4. [OBSERVER PATTERN] - Durum değişikliğini ilgili birimlere haber veriyoruz.
-                // OrderStation senin ISubject'in, BaristaScreen ise IObserver'ındır.
-                var orderStation = new OrderStation();
-                orderStation.Attach(new BaristaScreen());
-                orderStation.Notify($"Yeni Sipariş: #{orderDto.Id}");
-
-                return Ok(new
-                {
-                    success = true,
-                    orderId = orderDto.Id,
-                    totalCost = orderDto.TotalCost
-                });
+                return NotFound("Sipariş veritabanında bulunamadı!");
             }
-            catch (Exception ex)
-            {
-                // Hata durumunda ne olduğunu konsolda görelim
-                return BadRequest(new { success = false, message = ex.Message });
-            }
-        }
 
-        [HttpGet("get-orders")]
-        public IActionResult GetOrders()
-        {
-            // [ITERATOR PATTERN] - EF Core listeleri bu deseni temel alır.
-            var orders = _context.Orders.OrderByDescending(o => o.Id).ToList();
-            return Ok(orders);
-        }
+            // Durumu güncelliyoruz (Örn: "Waiting" -> "Preparing")
+            order.Status = request.Status;
 
-        [HttpGet("get-order-status/{id}")]
-        public IActionResult GetStatus(int id)
-        {
-            var order = _context.Orders.Find(id);
-            if (order == null) return NotFound();
-            return Ok(new { status = order.Status });
-        }
+            await _context.SaveChangesAsync();
 
-        [HttpPost("update-status")]
-        public IActionResult UpdateStatus([FromBody] StatusUpdateDto dto)
-        {
-            var order = _context.Orders.Find(dto.Id);
-            if (order == null) return NotFound();
-
-            // [STATE PATTERN] - Durum burada güncellenir.
-            order.Status = dto.Status;
-            _context.SaveChanges();
-
-            return Ok(new { success = true });
+            return Ok("Sipariş durumu başarıyla güncellendi.");
         }
     }
 
-    public class StatusUpdateDto { public int Id { get; set; } public string Status { get; set; } }
+    // JSON Verisini C#'ın anlayacağı formata çeviren DTO Sınıfı
+    public class UpdateStatusDto
+    {
+        public string Status { get; set; }
+    }
 }
