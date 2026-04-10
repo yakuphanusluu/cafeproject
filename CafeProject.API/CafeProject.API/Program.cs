@@ -1,15 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using CafeProject.API.Data;
-// DİKKAT: Burada OpenApi veya Models ile ilgili HİÇBİR ŞEY YOK!
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. VERİTABANI BAĞLANTISI (EF CORE)
+// 1. MYSQL VERİTABANI BAĞLANTISI (Pomelo Paketi Gerektirir)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
 
-// 2. CORS POLİTİKASI (Frontend Köprüsü)
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+
+// 2. CORS POLİTİKASI (Frontend Erişimi)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowEdaCafe", policy =>
@@ -22,13 +22,13 @@ builder.Services.AddCors(options =>
 
 builder.Services.AddControllers();
 
-// 3. SWAGGER AYARLARI (Sıfır Models, Sıfır Baş Ağrısı)
+// 3. SWAGGER AYARLARI (Models Çakışmasını Önlemek İçin Sade Bırakıldı)
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(); // İÇİ BOMBOŞ! Kendi varsayılan ayarlarını kullanacak.
+builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// 4. OTOMATİK MİGRASYON (500 Hatasını Önlemek İçin)
+// 4. OTOMATİK MİGRASYON (MySQL Tablolarını Otomatik Oluşturur)
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -39,17 +39,17 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Veritabanı Hazır: " + ex.Message);
+        Console.WriteLine("Veritabanı Hazır veya Hata: " + ex.Message);
     }
 }
 
-// 5. ARA YAZILIM (MIDDLEWARE) SIRALAMASI
+// 5. MIDDLEWARE SIRALAMASI
 app.UseSwagger();
-app.UseSwaggerUI(); // İçi boş, standart arayüzü hatasız açar.
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
 
-// KRİTİK: CORS her zaman Authorization'dan önce gelmeli!
+// CORS, Authorization'dan Önce Gelmeli!
 app.UseCors("AllowEdaCafe");
 
 app.UseAuthorization();
