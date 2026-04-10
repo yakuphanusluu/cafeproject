@@ -1,6 +1,6 @@
 ﻿namespace CafeProject.API.Facades
 {
-    using CafeProject.API.Models;
+    using CafeProject.API.Model;
     public class OrderFacade
     {
         // Metod isminin ve 'static' olduğunun doğruluğundan emin ol

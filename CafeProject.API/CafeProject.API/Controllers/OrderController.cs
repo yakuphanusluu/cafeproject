@@ -6,7 +6,7 @@ using CafeProject.API.Facades;       // Facade Pattern
 using CafeProject.Factories;     // Factory Pattern
 using CafeProject.Iterators;     // Iterator Pattern
 using CafeProject.Managers;      // Singleton Pattern (InventoryManager)
-using CafeProject.API.Models;        // Order modeli için
+using CafeProject.API.Model;        // Order modeli için
 using CafeProject.API.Observers;     // Observer Pattern
 using CafeProject.States;        // State Pattern
 using CafeProject.Strategies;    // Strategy Pattern

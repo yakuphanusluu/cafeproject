@@ -1,5 +1,5 @@
 ﻿using CafeProject.API.Facades; // .API eklendi
-using CafeProject.API.Models;
+using CafeProject.API.Model;
 
 namespace CafeProject.API.Adapters
 {

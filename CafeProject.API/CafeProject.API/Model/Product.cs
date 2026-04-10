@@ -1,4 +1,4 @@
-﻿namespace CafeProject.API.Models
+﻿namespace CafeProject.API.Model
 {
     public class Product
     {

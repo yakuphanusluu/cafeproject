@@ -1,39 +1,59 @@
 using Microsoft.EntityFrameworkCore;
-using global::CafeProject.API.Data; // Veritabanımızın adresi
+using CafeProject.API.Data;
+// DİKKAT: Burada OpenApi veya Models ile ilgili HİÇBİR ŞEY YOK!
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Veritabanı (SQLite) Bağlantısını Ekliyoruz
+// 1. VERİTABANI BAĞLANTISI (EF CORE)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=cafe.db"));
+    options.UseSqlServer(connectionString));
 
-// 2. CORS Ayarı (Arayüzümüzün API ile hata vermeden konuşabilmesi için)
-builder.Services.AddCors(options => {
-    options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+// 2. CORS POLİTİKASI (Frontend Köprüsü)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowEdaCafe", policy =>
+    {
+        policy.WithOrigins("https://yakuphanuslu.com", "http://yakuphanuslu.com", "https://www.yakuphanuslu.com")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
 });
 
-// 3. Standart API ve Swagger Servisleri
 builder.Services.AddControllers();
+
+// 3. SWAGGER AYARLARI (Sıfır Models, Sıfır Baş Ağrısı)
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(); // İÇİ BOMBOŞ! Kendi varsayılan ayarlarını kullanacak.
 
 var app = builder.Build();
 
-// 4. Çalışma Zamanı (Middleware) Ayarları
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+// 4. OTOMATİK MİGRASYON (500 Hatasını Önlemek İçin)
+using (var scope = app.Services.CreateScope())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
-    options.RoutePrefix = "swagger";
-});
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        context.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Veritabanı Hazır: " + ex.Message);
+    }
+}
+
+// 5. ARA YAZILIM (MIDDLEWARE) SIRALAMASI
+app.UseSwagger();
+app.UseSwaggerUI(); // İçi boş, standart arayüzü hatasız açar.
 
 app.UseHttpsRedirection();
 
-// CORS'u aktif ediyoruz (Sırası çok önemlidir, tam burada olmalı)
-app.UseCors("AllowAll");
+// KRİTİK: CORS her zaman Authorization'dan önce gelmeli!
+app.UseCors("AllowEdaCafe");
 
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using CafeProject.API.Models;
+using CafeProject.API.Model;
 
 namespace CafeProject.API.Data
 {

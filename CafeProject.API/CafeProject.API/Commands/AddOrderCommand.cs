@@ -1,5 +1,5 @@
 ﻿using CafeProject.API.Data;
-using CafeProject.API.Models;
+using CafeProject.API.Model;
 
 namespace CafeProject.API.Commands
 {
