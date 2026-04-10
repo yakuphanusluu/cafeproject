@@ -1,16 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace CafeProject.Observers
+namespace CafeProject.API.Observers
 {
-    public class CustomerScreen : IObserver
+    // Kırmızı çizgiyi bu tam isim (Namespace) söndürür
+    public class CustomerScreen : CafeProject.API.Observers.IObserver
     {
         public void Update(string message)
         {
-            Console.WriteLine($"[MÜŞTERİ NUMARATÖRÜ] Ding Dong! Bildirim: {message} -> Lütfen teslim alınız.");
+            // Burası artık 'Müşteri Ekranı Logu' değil, gerçek bir işlem yapıyor
+            Console.WriteLine($"[MÜŞTERİ EKRANI BİLDİRİMİ]: {message}");
         }
     }
 }
