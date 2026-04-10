@@ -1,31 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using CafeProject.API.Data;
+using CafeProject.API.Models;
 
-namespace CafeProject.Commands
+namespace CafeProject.API.Commands
 {
-    public class AddOrderCommand : ICommand
+    public class AddOrderCommand
     {
-        private Ticket _ticket;
-        private string _item;
+        private readonly AppDbContext _context;
+        private readonly Order _order;
 
-        // Komut çalıştırıldığında hangi adisyona hangi ürünün ekleneceğini biliyor
-        public AddOrderCommand(Ticket ticket, string item)
+        // Constructor tam olarak bu iki şeyi almalı:
+        public AddOrderCommand(AppDbContext context, Order order)
         {
-            _ticket = ticket;
-            _item = item;
+            _context = context;
+            _order = order;
         }
 
         public void Execute()
         {
-            _ticket.AddOrder(_item);
-        }
-
-        public void Undo()
-        {
-            _ticket.RemoveOrder(_item);
+            _context.Orders.Add(_order);
+            _context.SaveChanges();
         }
     }
 }

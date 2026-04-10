@@ -1,11 +1,14 @@
-﻿namespace CafeProject.API.Models;
-
-public class Order
+﻿public class Order
 {
     public int Id { get; set; }
-    public string CoffeeName { get; set; } = "";
-    public string SyrupName { get; set; } = "";
-    public bool HasMilk { get; set; }
-    public double TotalPrice { get; set; }
-    public DateTime OrderDate { get; set; } // Siparişin verildiği tarih ve saat
+    public string CoffeeType { get; set; }
+    public string SyrupName { get; set; }
+    public bool AddMilk { get; set; }
+    public bool AddWhip { get; set; } // Yeni
+    public string Size { get; set; }    // Yeni
+    public string Concept { get; set; } // Yeni
+    public string PaymentMethod { get; set; } // Yeni
+    public decimal TotalCost { get; set; }
+    public string Status { get; set; } = "Waiting"; // Varsayılan: Bekliyor
+    public DateTime OrderDate { get; set; } = DateTime.Now;
 }
