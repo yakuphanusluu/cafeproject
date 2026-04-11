@@ -40,13 +40,36 @@ namespace CafeProject.API.Controllers
                 newOrder.IsClosed = false;
                 _context.Orders.Add(newOrder);
 
-                // KULLANICI GİRİŞ YAPMIŞSA PUANINI ARTIR
+                // KULLANICI GİRİŞ YAPMIŞSA PUAN HESAPLAMASI
                 if (!string.IsNullOrEmpty(newOrder.CustomerUsername))
                 {
                     var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Username == newOrder.CustomerUsername);
                     if (customer != null)
                     {
-                        customer.LoyaltyPoints += 1;
+                        // NINJA TAKTİĞİ: " | " işaretlerinden bölerek kaç adet kahve alındığını buluyoruz!
+                        int coffeeCount = 1;
+                        if (!string.IsNullOrEmpty(newOrder.CoffeeType))
+                        {
+                            coffeeCount = newOrder.CoffeeType.Split(" | ").Length;
+                        }
+
+                        // Eğer 10 puanını kullandıysa:
+                        if (newOrder.UsedPoints && customer.LoyaltyPoints >= 10)
+                        {
+                            customer.LoyaltyPoints -= 10; // Bedava kahve için 10 puanı tahsil et
+
+                            // 1 Kahve bedava olduğu için, kalan "ücretli" kahve sayısı kadar puan ver
+                            int earnedPoints = coffeeCount - 1;
+                            if (earnedPoints > 0)
+                            {
+                                customer.LoyaltyPoints += earnedPoints;
+                            }
+                        }
+                        else
+                        {
+                            // Puan kullanmadıysa, aldığı tüm kahve sayısı kadar puan ver!
+                            customer.LoyaltyPoints += coffeeCount;
+                        }
                     }
                 }
 

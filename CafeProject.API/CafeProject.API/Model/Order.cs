@@ -18,6 +18,7 @@ namespace CafeProject.API.Model
         public string? PaymentMethod { get; set; }
         public string? Status { get; set; }
         public bool IsClosed { get; set; } = false;
+        public bool UsedPoints { get; set; } = false;
 
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();
     }
