@@ -11,5 +11,8 @@ namespace CafeProject.API.Data
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
         public DbSet<Customer> Customers { get; set; }
+
+        // YENİ: Haftalık Malzeme Sayımı Tablosu
+        public DbSet<InventoryItem> InventoryItems { get; set; }
     }
 }
