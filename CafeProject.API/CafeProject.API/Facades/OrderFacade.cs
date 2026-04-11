@@ -9,7 +9,6 @@
             // Burada basit bir hesaplama dönelim, kırmızıyı söndürsün
             decimal total = 40;
             if (order.Size == "Large") total += 20;
-            if (order.AddMilk) total += 10;
             return total;
         }
     }
