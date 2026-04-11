@@ -1,8 +1,8 @@
 ﻿using CafeProject.API.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Threading.Tasks;
-// Kendi projendeki Data ve Models klasörlerinin namespace'lerini buraya ekle (Örnek: using CafeProject.API.Data;)
 
 namespace CafeProject.API.Controllers
 {
@@ -17,57 +17,30 @@ namespace CafeProject.API.Controllers
             _context = context;
         }
 
-        // 🟢 1. MÜŞTERİNİN SİPARİŞ VERDİĞİ METOT
-        [HttpPost("place-order")]
-        public async Task<IActionResult> PlaceOrder([FromBody] Order request)
-        {
-            if (request == null)
-            {
-                return BadRequest("Sipariş verisi boş geldi.");
-            }
-
-            // Sisteme düşen ilk sipariş otomatik olarak 'Waiting' (Bekliyor) durumunda başlar
-            request.Status = "Waiting";
-
-            _context.Orders.Add(request);
-            await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Sipariş başarıyla alındı!", orderId = request.Id });
-        }
-
-        // 🟢 2. BARİSTA VE CANLI TAKİP EKRANININ SİPARİŞLERİ ÇEKTİĞİ METOT
+        // BARİSTA EKRANI İÇİN SİPARİŞLERİ ÇEKER
         [HttpGet("get-orders")]
         public async Task<IActionResult> GetOrders()
         {
-            // Siparişleri, altındaki 'Items' (sepetteki kahveler) ile birlikte getirir
-            var orders = await _context.Orders
-                                       .Include(o => o.Items)
-                                       .ToListAsync();
-
+            var orders = await _context.Orders.ToListAsync();
             return Ok(orders);
         }
 
-        // 🟢 3. BARİSTANIN DURUMU GÜNCELLEDİĞİ METOT (Preparing, Ready, Completed)
+        // BARİSTA EKRANI İÇİN DURUM GÜNCELLER
         [HttpPut("update-status/{id}")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto request)
         {
             var order = await _context.Orders.FindAsync(id);
+            if (order == null) return NotFound("Sipariş bulunamadı.");
 
-            if (order == null)
-            {
-                return NotFound("Sipariş veritabanında bulunamadı!");
-            }
-
-            // Durumu güncelliyoruz
+            // Gelen durumu (Preparing, Ready vb.) veritabanına yazar
             order.Status = request.Status;
 
             await _context.SaveChangesAsync();
-
-            return Ok(new { message = "Sipariş durumu başarıyla güncellendi.", newStatus = request.Status });
+            return Ok(new { message = "Başarıyla güncellendi", status = request.Status });
         }
     }
 
-    // JSON'dan gelen { "status": "Ready" } bilgisini C#'ın anlayacağı formata çeviren yardımcı sınıf
+    // JS'DEN GELEN JSON'U YAKALAMAK İÇİN ŞART!
     public class UpdateStatusDto
     {
         public string Status { get; set; }
