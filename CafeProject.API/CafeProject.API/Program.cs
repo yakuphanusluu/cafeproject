@@ -8,7 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36))));
+    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)),
+    mySqlOptions => mySqlOptions.EnableRetryOnFailure()
+    ));
 
 // 2. CORS AYARI (Frontend sitene izin veriyoruz)
 builder.Services.AddCors(options =>
