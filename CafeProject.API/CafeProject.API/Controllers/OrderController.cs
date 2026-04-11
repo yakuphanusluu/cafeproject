@@ -1,9 +1,7 @@
-﻿using CafeProject.API.Model; // Kendi Model klasörünün yoluna göre ayarla
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using System.Threading.Tasks;
-using CafeProject.API.Data; // Kendi Data klasörünün yoluna göre ayarla
+using CafeProject.API.Model;
+using CafeProject.API.Data;
 
 namespace CafeProject.API.Controllers
 {
@@ -18,7 +16,6 @@ namespace CafeProject.API.Controllers
             _context = context;
         }
 
-        // 1. KAPI: Siparişleri çekme (Barista ve Patron ekranı için)
         [HttpGet("get-orders")]
         public async Task<IActionResult> GetOrders()
         {
@@ -26,7 +23,6 @@ namespace CafeProject.API.Controllers
             return Ok(orders);
         }
 
-        // 2. KAPI: Durum güncelleme (Barista ekranı için)
         [HttpPut("update-status/{id}")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateStatusDto request)
         {
@@ -38,18 +34,38 @@ namespace CafeProject.API.Controllers
             return Ok(new { message = "Durum güncellendi", status = request.Status });
         }
 
-        // 3. KAPI: Yeni sipariş verme (Müşteri ekranı için)
         [HttpPost("place-order")]
         public async Task<IActionResult> PlaceOrder([FromBody] Order newOrder)
         {
             try
             {
                 newOrder.Status = "Waiting";
-                newOrder.IsClosed = false; // Yeni sipariş kasaya işlenmek üzere açık gelir
+                newOrder.IsClosed = false;
 
                 _context.Orders.Add(newOrder);
-                await _context.SaveChangesAsync();
 
+                // YENİ: Müşteri numarası varsa puanını artır
+                if (!string.IsNullOrEmpty(newOrder.CustomerPhone))
+                {
+                    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == newOrder.CustomerPhone);
+                    if (customer != null)
+                    {
+                        customer.LoyaltyPoints += 1; // Her siparişte 1 puan
+                    }
+                    else
+                    {
+                        // İlk siparişi veren yepyeni biriyse direkt kaydet ve 1 puan ver
+                        var newCustomer = new Customer
+                        {
+                            PhoneNumber = newOrder.CustomerPhone,
+                            Name = newOrder.CustomerName ?? "Yeni Müdavim",
+                            LoyaltyPoints = 1
+                        };
+                        _context.Customers.Add(newCustomer);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
                 return Ok(new { message = "Sipariş başarıyla iletildi!" });
             }
             catch (System.Exception ex)
@@ -58,28 +74,16 @@ namespace CafeProject.API.Controllers
             }
         }
 
-        // 4. KAPI (YENİ): Patronun Gün Sonu (Z Raporu) aldığı yer
         [HttpPost("take-z-report")]
         public async Task<IActionResult> TakeZReport()
         {
-            // Henüz kapatılmamış siparişleri bul
             var openOrders = await _context.Orders.Where(o => o.IsClosed == false).ToListAsync();
-
-            if (openOrders.Count == 0) return BadRequest("Kasa zaten sıfır, kapatılacak sipariş yok.");
-
-            // Hepsini "Kapatıldı" olarak işaretle
-            foreach (var order in openOrders)
-            {
-                order.IsClosed = true;
-            }
-
+            if (openOrders.Count == 0) return BadRequest("Kasa zaten sıfır.");
+            foreach (var order in openOrders) order.IsClosed = true;
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Gün sonu başarıyla alındı, kasa sıfırlandı!" });
+            return Ok(new { message = "Gün sonu alındı." });
         }
     }
 
-    public class UpdateStatusDto
-    {
-        public string? Status { get; set; }
-    }
+    public class UpdateStatusDto { public string? Status { get; set; } }
 }
