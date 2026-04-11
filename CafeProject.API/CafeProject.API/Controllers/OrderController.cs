@@ -11,10 +11,7 @@ namespace CafeProject.API.Controllers
     {
         private readonly AppDbContext _context;
 
-        public OrderController(AppDbContext context)
-        {
-            _context = context;
-        }
+        public OrderController(AppDbContext context) { _context = context; }
 
         [HttpGet("get-orders")]
         public async Task<IActionResult> GetOrders()
@@ -41,27 +38,15 @@ namespace CafeProject.API.Controllers
             {
                 newOrder.Status = "Waiting";
                 newOrder.IsClosed = false;
-
                 _context.Orders.Add(newOrder);
 
-                // YENİ: Müşteri numarası varsa puanını artır
-                if (!string.IsNullOrEmpty(newOrder.CustomerPhone))
+                // KULLANICI GİRİŞ YAPMIŞSA PUANINI ARTIR
+                if (!string.IsNullOrEmpty(newOrder.CustomerUsername))
                 {
-                    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.PhoneNumber == newOrder.CustomerPhone);
+                    var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Username == newOrder.CustomerUsername);
                     if (customer != null)
                     {
-                        customer.LoyaltyPoints += 1; // Her siparişte 1 puan
-                    }
-                    else
-                    {
-                        // İlk siparişi veren yepyeni biriyse direkt kaydet ve 1 puan ver
-                        var newCustomer = new Customer
-                        {
-                            PhoneNumber = newOrder.CustomerPhone,
-                            Name = newOrder.CustomerName ?? "Yeni Müdavim",
-                            LoyaltyPoints = 1
-                        };
-                        _context.Customers.Add(newCustomer);
+                        customer.LoyaltyPoints += 1;
                     }
                 }
 

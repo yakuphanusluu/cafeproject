@@ -7,7 +7,7 @@ namespace CafeProject.API.Model
         public int Id { get; set; }
 
         public string? CustomerName { get; set; }
-        public string? CustomerPhone { get; set; } // YENİ: Müdavim telefonu
+        public string? CustomerUsername { get; set; } // YENİ: Hesaba puan işlemek için
         public decimal TotalPrice { get; set; }
 
         public string? CoffeeType { get; set; }
@@ -17,8 +17,7 @@ namespace CafeProject.API.Model
         public string? Extras { get; set; }
         public string? PaymentMethod { get; set; }
         public string? Status { get; set; }
-
-        public bool IsClosed { get; set; } = false; // Z Raporu için
+        public bool IsClosed { get; set; } = false;
 
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();
     }
