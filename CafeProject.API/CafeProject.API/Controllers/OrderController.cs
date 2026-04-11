@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using CafeProject.API.Model;
 using CafeProject.API.Data;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace CafeProject.API.Controllers
 {
@@ -40,35 +42,40 @@ namespace CafeProject.API.Controllers
                 newOrder.IsClosed = false;
                 _context.Orders.Add(newOrder);
 
-                // KULLANICI GİRİŞ YAPMIŞSA PUAN HESAPLAMASI
+                // 1. MÜDAVİM PUAN HESAPLAMASI
                 if (!string.IsNullOrEmpty(newOrder.CustomerUsername))
                 {
                     var customer = await _context.Customers.FirstOrDefaultAsync(c => c.Username == newOrder.CustomerUsername);
                     if (customer != null)
                     {
-                        // NINJA TAKTİĞİ: " | " işaretlerinden bölerek kaç adet kahve alındığını buluyoruz!
-                        int coffeeCount = 1;
-                        if (!string.IsNullOrEmpty(newOrder.CoffeeType))
-                        {
-                            coffeeCount = newOrder.CoffeeType.Split(" | ").Length;
-                        }
+                        int coffeeCount = !string.IsNullOrEmpty(newOrder.CoffeeType) ? newOrder.CoffeeType.Split(" | ").Length : 1;
 
-                        // Eğer 10 puanını kullandıysa:
                         if (newOrder.UsedPoints && customer.LoyaltyPoints >= 10)
                         {
-                            customer.LoyaltyPoints -= 10; // Bedava kahve için 10 puanı tahsil et
-
-                            // 1 Kahve bedava olduğu için, kalan "ücretli" kahve sayısı kadar puan ver
+                            customer.LoyaltyPoints -= 10;
                             int earnedPoints = coffeeCount - 1;
-                            if (earnedPoints > 0)
-                            {
-                                customer.LoyaltyPoints += earnedPoints;
-                            }
+                            if (earnedPoints > 0) customer.LoyaltyPoints += earnedPoints;
                         }
                         else
                         {
-                            // Puan kullanmadıysa, aldığı tüm kahve sayısı kadar puan ver!
                             customer.LoyaltyPoints += coffeeCount;
+                        }
+                    }
+                }
+
+                // 2. OTOMATİK STOK DÜŞME SİSTEMİ
+                if (newOrder.Items != null && newOrder.Items.Count > 0)
+                {
+                    foreach (var item in newOrder.Items)
+                    {
+                        // id'si 999 olan Mixology İksiri hariç (çünkü onun sabit bir stoku yok)
+                        if (item.ProductId > 0 && item.ProductId != 999)
+                        {
+                            var productInDb = await _context.Products.FindAsync(item.ProductId);
+                            if (productInDb != null && productInDb.Stock > 0)
+                            {
+                                productInDb.Stock -= 1; // Sepetteki her ürün için stoku 1 düşür
+                            }
                         }
                     }
                 }
