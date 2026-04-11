@@ -11,4 +11,6 @@
     public decimal TotalCost { get; set; }
     public string Status { get; set; } = "Waiting"; // Varsayılan: Bekliyor
     public DateTime OrderDate { get; set; } = DateTime.Now;
+
+    public List<OrderItem> Items { get; set; } = new List<OrderItem>();
 }
