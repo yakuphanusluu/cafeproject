@@ -16,6 +16,8 @@ namespace CafeProject.API.Model
         public string? Size { get; set; }
         public string? Concept { get; set; }
         public string? SyrupName { get; set; }
+        // Diğer özelliklerin arasına (SyrupName'in falan altına) şunu ekle:
+        public string? Extras { get; set; }
         public string? PaymentMethod { get; set; }
 
         // Barista ekranı için durum (Waiting, Preparing, Ready vb.)
