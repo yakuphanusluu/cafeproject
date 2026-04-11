@@ -1,6 +1,5 @@
 ﻿using System;
-
-namespace CafeProject.API.Model // Kendi namespace'ine göre ayarla
+namespace CafeProject.API.Model
 {
     public class Customer
     {
