@@ -1,65 +1,40 @@
+using CafeProject.API.Data;
 using Microsoft.EntityFrameworkCore;
-using CafeProject.API.Data; // Eğer AppDbContext farklı bir klasördeyse burayı düzenle
+using System.Text.Json.Serialization;
+using CafeProject.API.Data;// Kendi projene göre AppDbContext'in olduğu yeri (örn: using CafeProject.API.Data;) buraya ekle:
+// using CafeProject.API.Data; 
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. MYSQL BAĞLANTI AYARI
-// Bağlantı hatasını (Unable to connect) migration sırasında aşmak için versiyonu sabitliyoruz.
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
+// 1. VERİTABANI BAĞLANTISI (MySQL)
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 36)),
-    mySqlOptions => mySqlOptions.EnableRetryOnFailure()
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        new MySqlServerVersion(new Version(8, 0, 36))
+    // Eğer veritabanı kurulumu yapmıyorsan EnableRetryOnFailure silebilirsin
     ));
 
-// 2. CORS AYARI (Frontend sitene izin veriyoruz)
+// 2. CORS AYARI (Tarayıcı engeline takılmamak için)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowEdaCafe", policy =>
-    {
-        policy.WithOrigins("https://yakuphanuslu.com", "http://yakuphanuslu.com", "https://www.yakuphanuslu.com")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+    options.AddPolicy("AllowAll",
+        policy => policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
 });
 
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// 3. JSON AYARLARI (İşte Barista ekranındaki sonsuz döngüyü kıran hayat kurtarıcı kod!)
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
 var app = builder.Build();
 
-// 3. OTOMATİK MİGRASYON VE TABLO OLUŞTURMA
-// Bu blok Render'da uygulama ilk açıldığında Hostinger'da tabloları oluşturur.
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<AppDbContext>();
-        context.Database.Migrate();
-        Console.WriteLine("--- VERİTABANI BAĞLANTISI VE MİGRASYON BAŞARILI ---");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine("--- MİGRASYON HATASI: " + ex.Message);
-    }
-}
+// 4. ÇALIŞTIRMA SIRASI (Sıralama çok kritik kanka, bozma)
+app.UseRouting();
 
-// 4. PIPELINE (SIRALAMA KRİTİK)
-if (app.Environment.IsDevelopment() || true) // Render'da Swagger'ı görmek için true kalsın
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-    app.UseDeveloperExceptionPage(); // Hataları detaylı görmek için
-}
-
-app.UseHttpsRedirection();
-
-app.UseCors("AllowEdaCafe"); // CORS, Auth'dan önce olmalı.
+app.UseCors("AllowAll"); // CORS her zaman UseRouting'den SONRA gelir!
 
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
