@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Paneli - Cyber Coffee</title>
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0; }
+        .top-bar { max-width: 1400px; margin: 0 auto 10px auto; display: flex; justify-content: flex-end; }
+        .lang-select { padding: 8px 12px; border-radius: 8px; border: 1px solid #334155; background: #1e293b; cursor: pointer; font-weight: bold; color: #38bdf8; }
+        .header-container { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto 30px auto; }
+        h1 { color: #38bdf8; margin: 0; letter-spacing: 2px; }
+        .btn-z-report { background-color: #ef4444; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4); transition: 0.3s; }
+        .btn-z-report:hover { background-color: #dc2626; transform: translateY(-2px); }
+        .dashboard-container { max-width: 1400px; margin: 0 auto; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 40px; }
+        .stat-card { background: #1e293b; padding: 25px; border-radius: 12px; border-top: 4px solid #38bdf8; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); text-align: center; }
+        .stat-card h3 { margin: 0 0 10px 0; color: #94a3b8; font-size: 1.1em; text-transform: uppercase; }
+        .stat-card .value { font-size: 2.5em; font-weight: bold; color: #fff; margin: 10px 0; }
+        .stat-card .value.money { color: #10b981; }
+        .stat-card .value.fire { color: #f59e0b; font-size: 1.8em; }
+        .table-container { background: #1e293b; padding: 20px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); overflow-x: auto; }
+        .table-container h2 { margin-top: 0; color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; min-width: 800px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #334155; vertical-align: middle; }
+        th { color: #94a3b8; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
+        tr:hover { background-color: #334155; }
+        .content-list { margin: 0; padding: 0; list-style: none; font-size: 0.9em; color: #cbd5e1; }
+        .content-list li { margin-bottom: 4px; border-left: 2px solid #38bdf8; padding-left: 8px; }
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.75em; font-weight: bold; white-space: nowrap; }
+        .bg-waiting { background: #ef4444; color: white; }
+        .bg-preparing { background: #f59e0b; color: white; }
+        .bg-ready { background: #10b981; color: white; }
+        .bg-delivered { background: #64748b; color: white; }
+    </style>
+</head>
+<body>
+    <div class="top-bar">
+        <select id="language-select" class="lang-select" onchange="changeLanguage(this.value)">
+            <option value="tr">🇹🇷 TR</option>
+            <option value="en">🇺🇸 EN</option>
+        </select>
+    </div>
+
+    <div class="dashboard-container">
+        <div class="header-container">
+            <h1 data-i18n="boss_panel">📈 Admin Paneli (Finansal Takip)</h1>
+            <button class="btn-z-report" onclick="takeZReport()" data-i18n="btn_z">📊 Gün Sonu Al (Kapat)</button>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card" style="padding-bottom: 15px;">
+                <h3 data-i18n="total_rev">💰 Bugünkü Ciro</h3>
+                <div class="value money" id="total-revenue" style="margin-bottom: 10px;">0 TL</div>
+                <div style="display: flex; justify-content: space-around; font-size: 0.9em; color: #cbd5e1; border-top: 1px solid #334155; padding-top: 12px; margin-top: 5px;">
+                    <span>💵 <span data-i18n="cash">Nakit</span>: <b id="cash-revenue" style="color: #f1c40f;">0 TL</b></span>
+                    <span>💳 <span data-i18n="credit_card">Kredi</span>: <b id="credit-revenue" style="color: #c084fc;">0 TL</b></span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <h3 data-i18n="daily_ord">📦 Bugünkü Sipariş</h3>
+                <div class="value" id="total-orders">0</div>
+            </div>
+            <div class="stat-card">
+                <h3 data-i18n="active_ord">⏳ Aktif (Bekleyen)</h3>
+                <div class="value" id="active-orders" style="color: #ef4444;">0</div>
+            </div>
+            <div class="stat-card">
+                <h3 data-i18n="best_seller">🔥 Günün Favorisi</h3>
+                <div class="value fire" id="best-seller">...</div>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <h2 data-i18n="daily_logs">📜 Günlük Sipariş Dökümleri</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px;" data-i18n="th_id">ID</th>
+                        <th style="width: 150px;" data-i18n="th_cust">Müşteri</th>
+                        <th data-i18n="th_details">Sipariş İçeriği (Detaylar)</th> 
+                        <th style="width: 120px;" data-i18n="th_pay">Ödeme</th>
+                        <th style="width: 100px;" data-i18n="th_amt">Tutar</th>
+                        <th style="width: 120px;" data-i18n="th_stat">Durum</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <tr><td colspan="6" style="text-align:center; color:#94a3b8;">...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="script.js?v=9.1"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchDashboardData();
+            setInterval(fetchDashboardData, 10000); 
+        });
+
+        async function fetchDashboardData() {
+            try {
+                const response = await fetch(`${API_URL}/Order/get-orders`);
+                const allOrders = await response.json();
+                const dailyOrders = allOrders.filter(order => order.isClosed === false);
+
+                ciroHesapla(); // Ciro fonk. script.js içinden çağrılıyor
+
+                document.getElementById("total-orders").innerText = dailyOrders.length;
+                document.getElementById("active-orders").innerText = dailyOrders.filter(o => o.status !== "Delivered").length;
+
+                if(dailyOrders.length === 0) {
+                    document.getElementById("best-seller").innerText = t('none_yet');
+                } else {
+                    let productCounts = {};
+                    dailyOrders.forEach(order => {
+                        if (order.coffeeType) {
+                            order.coffeeType.split(' | ').forEach(item => {
+                                let cleanName = item.split('(')[0].trim(); 
+                                productCounts[cleanName] = (productCounts[cleanName] || 0) + 1;
+                            });
+                        }
+                    });
+                    let bestSeller = t('none_yet'), maxCount = 0;
+                    for (const [name, count] of Object.entries(productCounts)) {
+                        if (count > maxCount) { maxCount = count; bestSeller = name; }
+                    }
+                    document.getElementById("best-seller").innerText = bestSeller;
+                }
+
+                const tableBody = document.getElementById("table-body");
+                if(dailyOrders.length === 0){
+                    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:#94a3b8;">${t('empty_reg')}</td></tr>`;
+                    return;
+                }
+
+// patron.html içindeki fetchDashboardData() fonksiyonunun sonları...
+tableBody.innerHTML = dailyOrders.sort((a, b) => b.id - a.id).map(order => {
+    let statusClass = "bg-waiting", statusText = t('status_waiting');
+    if(order.status === "Preparing") { statusClass = "bg-preparing"; statusText = t('status_preparing'); }
+    else if(order.status === "Ready") { statusClass = "bg-ready"; statusText = t('status_ready'); }
+    else if(order.status === "Delivered") { statusClass = "bg-delivered"; statusText = t('status_delivered'); }
+
+    const statusBadge = `<span class='status-badge ${statusClass}'>${statusText}</span>`;
+    const paymentText = (order.paymentMethod === "Nakit" || order.paymentMethod === "Cash") ? t('cash') : t('credit_card');
+    
+    // YENİ: Çevirici fonksiyon devreye giriyor!
+    let contentHtml = "<ul class='content-list'>" + formatCoffeeDetails(order.coffeeType) + "</ul>";
+
+    return `
+        <tr>
+            <td style="color:#94a3b8;">#${order.id}</td>
+            <td style="font-weight:bold; color: #e2e8f0;">${order.customerName}</td>
+            <td>${contentHtml}</td> 
+            <td>${paymentText}</td>
+            <td style="color:#10b981; font-weight:bold;">${order.totalPrice} TL</td>
+            <td>${statusBadge}</td>
+        </tr>`;
+}).join("");
+
+            } catch (error) { }
+        }
+    </script>
+</body>
+</html>

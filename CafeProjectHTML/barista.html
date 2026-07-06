@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barista Paneli - Cyber Coffee</title>
+    <style>
+        body { background-color: #1a1a1a; color: #fff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; margin: 0; }
+        .top-bar { max-width: 1400px; margin: 0 auto 10px auto; display: flex; justify-content: flex-end; }
+        .lang-select { padding: 8px 12px; border-radius: 8px; border: 1px solid #444; background: #2a2a2a; cursor: pointer; font-weight: bold; color: #00bcd4; }
+        h1 { text-align: center; color: #00bcd4; margin-bottom: 30px; text-shadow: 0 0 10px rgba(0,188,212,0.3); }
+        
+        #orders-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        .order-card { background: #2a2a2a; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); display: flex; flex-direction: column; transition: 0.3s; }
+        .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #444; padding-bottom: 10px; margin-bottom: 15px; }
+        .order-header h3 { margin: 0; color: #fff; font-size: 1.2em; }
+        .order-header .id-badge { background: #444; padding: 3px 8px; border-radius: 15px; font-size: 0.8em; color: #aaa; }
+        .order-details p { margin: 5px 0; font-size: 0.95em; color: #ccc; }
+        .order-details strong { color: #00bcd4; }
+        .coffee-list { color: #e0e0e0; font-size: 0.9em; padding-left: 20px; margin-top: 5px; line-height: 1.5; }
+        .coffee-list li { margin-bottom: 8px; }
+        .order-price { text-align: right; font-size: 1.3em; font-weight: bold; color: #2ecc71; margin-top: auto; padding-top: 15px; }
+
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-group button { flex: 1; padding: 10px; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; transition: 0.2s; color: #111; }
+        .btn-prep { background-color: #f1c40f; } .btn-prep:hover { background-color: #d4ac0d; }
+        .btn-ready { background-color: #2ecc71; color: white !important; } .btn-ready:hover { background-color: #27ae60; }
+        .btn-deliver { background-color: #34495e; color: white !important; } .btn-deliver:hover { background-color: #2c3e50; }
+    </style>
+</head>
+<body>
+    <audio id="order-bell" src="https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3" preload="auto"></audio>
+
+    <div class="top-bar">
+        <select id="language-select" class="lang-select" onchange="changeLanguage(this.value)">
+            <option value="tr">🇹🇷 TR</option>
+            <option value="en">🇺🇸 EN</option>
+        </select>
+    </div>
+
+    <h1 data-i18n="barista_panel">🚀 Cyber Coffee Barista Paneli</h1>
+    <div id="orders-container"><p style="text-align: center; color: #aaa;">...</p></div>
+
+    <script src="script.js?v=9.1"></script>
+    <script>
+        let lastMaxId = 0; 
+
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchOrders();
+            setInterval(fetchOrders, 5000); 
+        });
+
+        async function fetchOrders() {
+            const container = document.getElementById("orders-container");
+            try {
+                const response = await fetch(`${API_URL}/Order/get-orders`);
+                let orders = await response.json();
+
+                if (orders.length > 0) {
+                    const currentMaxId = Math.max(...orders.map(o => o.id));
+                    if (lastMaxId !== 0 && currentMaxId > lastMaxId) {
+                        const bell = document.getElementById("order-bell");
+                        bell.currentTime = 0; bell.play().catch(e => {});
+                    }
+                    lastMaxId = currentMaxId;
+                }
+
+                orders = orders.filter(o => o.isClosed === false).sort((a, b) => b.id - a.id);
+
+                if (orders.length === 0) {
+                    container.innerHTML = `<p style='text-align:center; color:#aaa; width:100%;'>${t('no_orders')}</p>`;
+                    return;
+                }
+
+// barista.html içindeki fetchOrders() fonksiyonunun sonları...
+container.innerHTML = orders.map(order => {
+    let borderColor = "#e74c3c"; 
+    if (order.status === "Preparing") borderColor = "#f1c40f"; 
+    if (order.status === "Ready") borderColor = "#2ecc71"; 
+    if (order.status === "Delivered") return ""; 
+
+    // YENİ: Çevirici fonksiyon devreye giriyor!
+    let coffeesList = formatCoffeeDetails(order.coffeeType);
+    
+    const paymentText = (order.paymentMethod === "Nakit" || order.paymentMethod === "Cash") ? t('cash') : t('credit_card');
+
+    return `
+        <div class="order-card" style="border-left: 6px solid ${borderColor};">
+            <div class="order-header">
+                <h3>👤 ${order.customerName}</h3>
+                <span class="id-badge">#${order.id}</span>
+            </div>
+            <div class="order-details">
+                <p><strong>${t('coffee_det')}</strong></p>
+                <ul class="coffee-list">${coffeesList}</ul>
+                <p><strong>${t('pay_lbl')}</strong> ${paymentText}</p>
+            </div>
+            <div class="order-price">${order.totalPrice} TL</div>
+            
+            <div class="btn-group">
+                <button class="btn-prep" onclick="changeStatus(${order.id}, 'Preparing')">${t('btn_prep_act')}</button>
+                <button class="btn-ready" onclick="changeStatus(${order.id}, 'Ready')">${t('btn_ready_act')}</button>
+                <button class="btn-deliver" onclick="changeStatus(${order.id}, 'Delivered')">${t('btn_deliv_act')}</button>
+            </div>
+        </div>
+    `;
+}).join("");
+            } catch (error) { }
+        }
+
+        async function changeStatus(orderId, newStatus) {
+            try {
+                const response = await fetch(`${API_URL}/Order/update-status/${orderId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (response.ok) fetchOrders();
+                else alert(t('stat_err'));
+            } catch (error) { }
+        }
+    </script>
+</body>
+</html>
